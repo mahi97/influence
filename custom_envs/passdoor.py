@@ -10,6 +10,8 @@ class PassMultiGrid(MultiGridEnv):
     metadata = {}
 
     def _gen_grid(self, width, height):
+        self.metadata['width'] = width
+        self.metadata['height'] = height
         # Create an empty grid
         self.grid = MultiGrid((width, height))
 
@@ -43,20 +45,20 @@ class PassMultiGrid(MultiGridEnv):
 
         b1 = Button("yellow")
         b2 = Button("red")
-        self.place_obj(obj=b1, top=(width // 4, height - 5), size=(3, 3))
-        self.place_obj(obj=b2, top=(3 * width // 4 - 3, 5), size=(3, 3))
+        self.place_obj(obj=b1, top=(width // 4, height - 5), size=(1, 1))
+        self.place_obj(obj=b2, top=(3 * width // 4 - 3, 5), size=(1, 1))
 
         self.agent_spawn_kwargs = {'top': (0, 0), 'size': (width // 2, height // 2)}
 
         b1.signal.connect(d2.switch)
         b2.signal.connect(d1.switch)
 
-        s1 = Switch("yellow")
-        self.place_obj(obj=s1, top=(width // 4, height - 5), size=(3, 3))
-        s2 = Switch("red")
-        self.place_obj(obj=s2, top=(3 * width // 4 - 3, 5), size=(3, 3))
-        s1.signal.connect(d2.switch)
-        s2.signal.connect(d1.switch)
+        # s1 = Switch("yellow")
+        # self.place_obj(obj=s1, top=(width // 4, height - 5), size=(3, 3))
+        # s2 = Switch("red")
+        # self.place_obj(obj=s2, top=(3 * width // 4 - 3, 5), size=(3, 3))
+        # s1.signal.connect(d2.switch)
+        # s2.signal.connect(d1.switch)
 
     def reward(self):
         count = 0
@@ -76,72 +78,6 @@ class PassMultiGrid(MultiGridEnv):
             self.reset()
             return 1
         return 0
-
-
-class MinimalWrapper(gym.Env):
-    def __init__(self, env):
-        super().__init__()
-        self.env = env
-
-        self.observation_space = gym.spaces.Box(np.array([0, 0, 0, 0, 0, 0]), np.array([1, 1, 4, 1, 1, 4]), shape=(6,), dtype=np.float32)
-        # gym.spaces.Tuple([gym.spaces.Discrete(act.n) for act in self.env.action_space])
-        self.action_space = self.env.action_space
-        self.metadata = self.env.metadata
-
-        try:
-            self.info = self.env.info
-        except AttributeError:
-            pass
-
-    def reset(self):
-        obs = self.env.reset()
-        new_obs = []
-        for ob in obs:
-            new_obs.append(np.concatenate([ob['position'], [ob['orientation']]]))
-        return np.concatenate(new_obs)
-
-    def step(self, actions):
-        obs, rew, done, info = self.env.step(actions)
-        new_obs = []
-        for ob in obs:
-            new_obs.append(np.concatenate([ob['position'], [ob['orientation']]]))
-        return np.concatenate(new_obs), np.sum(rew), done, info
-
-
-class SingleAgentWrapper(gym.Env):
-    def __init__(self, env):
-        super().__init__()
-        self.env = env
-
-        self.observation_space = self.env.observation_space
-        self.action_space = self.env.action_space
-        self.metadata = self.env.metadata
-
-        try:
-            self.info = self.env.info
-        except AttributeError:
-            pass
-
-    def reset(self):
-        obs = self.env.reset()
-        return np.concatenate(obs)
-
-    def step(self, actions):
-        actions = np.split(actions, 2)
-        obs, rew, done, info = self.env.step(actions)
-        return np.concatenate(obs), np.sum(rew), np.all(done), np.concatenate(info)
-
-
-class PassMultiGridWrapper(PassMultiGrid):
-    def reset(self, **kwargs):
-        obs = super(PassMultiGridWrapper, self).reset(**kwargs)
-        return np.concatenate(obs)
-
-    def step(self, actions):
-        actions = np.split(actions, 2)
-        obs, rew, done, info = super(PassMultiGridWrapper, self).step(actions)
-        return np.concatenate(obs), np.sum(rew), np.all(done), np.concatenate(info)
-
 
 n_agent = 2
 register_marl_env(
