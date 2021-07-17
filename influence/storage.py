@@ -1,5 +1,6 @@
 import torch
 from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
+import numpy as np
 
 
 def _flatten_helper(T, N, _tensor):
@@ -32,6 +33,21 @@ class RolloutStorage(object):
         self.num_steps = num_steps
         self.step = 0
 
+        self.counter = np.zeros([30, 30, 30, 30], dtype=np.int32)
+        # self.counter = np.zeros([30, 30, 4, 30, 30, 4], dtype=np.int32)
+
+    def _get_index(self, obs):
+        s = [o for o in obs.clone()]
+        s[0] *= 30
+        s[1] *= 30
+        s[3] *= 30
+        s[4] *= 30
+        ss = [int(s[i]) for i in [0, 1, 3, 4]]
+        return tuple(ss)
+
+    def _get_curiosity(self, obs):
+        return 1. / np.sqrt(self.counter[self._get_index(obs)] + 1)
+
     def to(self, device):
         self.obs = self.obs.to(device)
         self.recurrent_hidden_states = self.recurrent_hidden_states.to(device)
@@ -42,19 +58,22 @@ class RolloutStorage(object):
         self.actions = self.actions.to(device)
         self.masks = self.masks.to(device)
         self.bad_masks = self.bad_masks.to(device)
+        self.device = device
 
     def insert(self, obs, recurrent_hidden_states, actions, action_log_probs,
                value_preds, rewards, masks, bad_masks):
+
         self.obs[self.step + 1].copy_(obs)
-        self.recurrent_hidden_states[self.step +
-                                     1].copy_(recurrent_hidden_states)
+        self.recurrent_hidden_states[self.step + 1].copy_(recurrent_hidden_states)
         self.actions[self.step].copy_(actions)
         self.action_log_probs[self.step].copy_(action_log_probs)
         self.value_preds[self.step].copy_(value_preds)
         self.rewards[self.step].copy_(rewards)
         self.masks[self.step + 1].copy_(masks)
         self.bad_masks[self.step + 1].copy_(bad_masks)
-
+        for o in obs:
+            self.counter[self._get_index(o)] += 1
+            self.rewards[self.step] += torch.tensor(self._get_curiosity(o)).to(self.device)
         self.step = (self.step + 1) % self.num_steps
 
     def after_update(self):
@@ -70,7 +89,8 @@ class RolloutStorage(object):
         if use_proper_time_limits:
             self.returns[-1] = next_value
             for step in reversed(range(self.rewards.size(0))):
-                self.returns[step] = (self.returns[step + 1] * gamma * self.masks[step + 1] + self.rewards[step]) * self.bad_masks[step + 1] \
+                self.returns[step] = (self.returns[step + 1] * gamma * self.masks[step + 1] + self.rewards[step]) * \
+                                     self.bad_masks[step + 1] \
                                      + (1 - self.bad_masks[step + 1]) * self.value_preds[step]
         else:
             self.returns[-1] = next_value
@@ -168,8 +188,7 @@ class RolloutStorage(object):
             value_preds_batch = _flatten_helper(T, N, value_preds_batch)
             return_batch = _flatten_helper(T, N, return_batch)
             masks_batch = _flatten_helper(T, N, masks_batch)
-            old_action_log_probs_batch = _flatten_helper(T, N, \
-                                                         old_action_log_probs_batch)
+            old_action_log_probs_batch = _flatten_helper(T, N, old_action_log_probs_batch)
             adv_targ = _flatten_helper(T, N, adv_targ)
 
             yield obs_batch, recurrent_hidden_states_batch, actions_batch, \

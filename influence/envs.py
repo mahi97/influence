@@ -16,7 +16,9 @@ from stable_baselines3.common.vec_env import (DummyVecEnv, SubprocVecEnv,
 from stable_baselines3.common.vec_env.vec_normalize import \
     VecNormalize as VecNormalize_
 
-from custom_envs.passdoor import SingleAgentWrapper, MinimalWrapper
+from custom_envs.passdoor import PassMultiGrid
+from wrappers.minimal import MinimalWrapper
+from wrappers.curiosity import CuriosityWrapper
 
 try:
     import dmc2gym
@@ -33,12 +35,14 @@ try:
 except ImportError:
     pass
 
-
+# counter = np.zeros([30, 30, 4, 30, 30, 4], dtype=np.int32)
 def make_env(env_id, seed, rank, log_dir, allow_early_resets):
     def _thunk():
         if env_id.startswith("MarlGrid"):
+            global counter
             env = gym.make(env_id)
             env = MinimalWrapper(env)
+            # env = CuriosityWrapper(env)
             is_grid = True
         elif env_id.startswith("dm"):
             _, domain, task = env_id.split('.')
@@ -47,8 +51,7 @@ def make_env(env_id, seed, rank, log_dir, allow_early_resets):
         else:
             env = gym.make(env_id)
 
-        is_atari = hasattr(gym.envs, 'atari') and isinstance(
-            env.unwrapped, gym.envs.atari.atari_env.AtariEnv)
+        is_atari = hasattr(gym.envs, 'atari') and isinstance(env.unwrapped, gym.envs.atari.atari_env.AtariEnv)
         if is_atari:
             env = NoopResetEnv(env, noop_max=30)
             env = MaxAndSkipEnv(env, skip=4)
@@ -106,11 +109,11 @@ def make_vec_envs(env_name,
     else:
         envs = DummyVecEnv(envs)
 
-    if len(envs.observation_space.shape) == 1:
-        if gamma is None:
-            envs = VecNormalize(envs, norm_reward=False)
-        else:
-            envs = VecNormalize(envs, gamma=gamma)
+    # if len(envs.observation_space.shape) == 1:
+    #     if gamma is None:
+    #         envs = VecNormalize(envs, norm_reward=False)
+    #     else:
+    #         envs = VecNormalize(envs, gamma=gamma)
 
     envs = VecPyTorch(envs, device)
 

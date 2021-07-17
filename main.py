@@ -18,10 +18,12 @@ from influence.model import Policy
 from influence.storage import RolloutStorage
 from evaluation import evaluate
 
+import wandb
+import matplotlib.pyplot as plt
 
 def main():
     args = get_args()
-
+    wandb.init(project='influence')
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
 
@@ -150,6 +152,25 @@ def main():
                                 np.median(episode_rewards), np.min(episode_rewards),
                                 np.max(episode_rewards), dist_entropy, value_loss,
                                 action_loss))
+                if i == 0:
+                    plt.imshow(np.sum(rollouts.counter, axis=(2, 3)).T)
+                else:
+                    plt.imshow(np.sum(rollouts.counter, axis=(0, 1)).T)
+                
+                i = str(i)
+                wandb.log({
+                    'FPS ' + i: int(total_num_steps / (end - start)),
+                    'Mean Reward ' + i: np.mean(episode_rewards),
+                    'Median Reward ' + i: np.mean(episode_rewards),
+                    'Median Reward ' + i: np.median(episode_rewards),
+                    'Max Reward ' + i: np.max(episode_rewards),
+                    'Min Reward ' + i: np.min(episode_rewards),
+                    'Dist Entropy ' + i: dist_entropy,
+                    'Value Loss ' + i: value_loss,
+                    'Action Loss ' + i: action_loss,
+                    'Chart ' + i: plt
+                })
+                plt.show()
 
         if (args.eval_interval is not None and len(episode_rewards) > 1
                 and j % args.eval_interval == 0):
