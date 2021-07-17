@@ -170,7 +170,7 @@ def main():
                     'Action Loss ' + i: action_loss,
                     'Chart ' + i: plt
                 })
-                plt.show()
+                #plt.show()
 
         if (args.eval_interval is not None and len(episode_rewards) > 1
                 and j % args.eval_interval == 0):
