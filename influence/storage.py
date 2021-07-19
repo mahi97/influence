@@ -72,8 +72,8 @@ class RolloutStorage(object):
         self.masks[self.step + 1].copy_(masks)
         self.bad_masks[self.step + 1].copy_(bad_masks)
         for o in obs:
-            self.counter[self._get_index(o)] += 1
             self.rewards[self.step] += torch.tensor(self._get_curiosity(o)).to(self.device)
+            self.counter[self._get_index(o)] += 1
         self.step = (self.step + 1) % self.num_steps
 
     def after_update(self):

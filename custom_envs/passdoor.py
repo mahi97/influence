@@ -48,7 +48,7 @@ class PassMultiGrid(MultiGridEnv):
         self.place_obj(obj=b1, top=(width // 4, height - 5), size=(1, 1))
         self.place_obj(obj=b2, top=(3 * width // 4 - 3, 5), size=(1, 1))
 
-        self.agent_spawn_kwargs = {'top': (0, 0), 'size': (width // 2, height // 2)}
+        self.agent_spawn_kwargs = {'top': (0, 0), 'size': (width // 2, height)}
 
         b1.signal.connect(d2.switch)
         b2.signal.connect(d1.switch)
