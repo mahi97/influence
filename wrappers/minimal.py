@@ -10,7 +10,7 @@ class MinimalWrapper(gym.Env):
         self.observation_space = gym.spaces.Box(np.array([0, 0, 0, 0, 0, 0]), np.array([1, 1, 4, 1, 1, 4]), shape=(6,),
                                                 dtype=np.float32)
         # gym.spaces.Tuple([gym.spaces.Discrete(act.n) for act in self.env.action_space])
-        self.action_space = self.env.action_space
+        self.action_space = gym.spaces.Tuple([gym.spaces.Discrete(3), gym.spaces.Discrete(3)])
         self.metadata = self.env.metadata
 
         try:
