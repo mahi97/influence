@@ -48,6 +48,8 @@ class RolloutStorage(object):
     def _get_curiosity(self, obs):
         return 1. / np.sqrt(self.counter[self._get_index(obs)] + 1)
 
+
+
     def to(self, device):
         self.obs = self.obs.to(device)
         self.recurrent_hidden_states = self.recurrent_hidden_states.to(device)
@@ -71,8 +73,8 @@ class RolloutStorage(object):
         self.rewards[self.step].copy_(rewards)
         self.masks[self.step + 1].copy_(masks)
         self.bad_masks[self.step + 1].copy_(bad_masks)
-        for o in obs:
-            self.rewards[self.step] += torch.tensor(self._get_curiosity(o)).to(self.device)
+        for i, o in enumerate(obs):
+            self.rewards[self.step][i] += torch.tensor(self._get_curiosity(o)).to(self.device)
             self.counter[self._get_index(o)] += 1
         self.step = (self.step + 1) % self.num_steps
 
