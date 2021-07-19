@@ -138,7 +138,7 @@ def main():
                 torch.save([
                     ac,
                     getattr(utils.get_vec_normalize(envs), 'obs_rms', None)
-                ], os.path.join(save_path, args.env_name + '_agent_{}_'.format(i) + ".pt"))
+                ], os.path.join(save_path, args.env_name + '{}_agent_{}_'.format(args.seed, i) + ".pt"))
 
             if j % args.log_interval == 0 and len(episode_rewards) > 1:
                 total_num_steps = (j + 1) * args.num_processes * args.num_steps
