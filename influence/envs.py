@@ -39,7 +39,6 @@ except ImportError:
 def make_env(env_id, seed, rank, log_dir, allow_early_resets):
     def _thunk():
         if env_id.startswith("MarlGrid"):
-            global counter
             env = gym.make(env_id)
             env = MinimalWrapper(env)
             # env = CuriosityWrapper(env)
