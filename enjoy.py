@@ -33,6 +33,7 @@ if __name__ == '__main__':
         action='store_true',
         default=False,
         help='whether to use a non-deterministic policy')
+
     args = parser.parse_args()
 
     args.det = not args.non_det
@@ -50,7 +51,7 @@ if __name__ == '__main__':
     render_func = get_render_func(env)
 
     # We need to use the same statistics for normalization as used in training
-    actor_critic_and_obs_rms = [torch.load(os.path.join(args.load_dir, args.env_name + '_agent_{}_'.format(i) + ".pt"),
+    actor_critic_and_obs_rms = [torch.load(os.path.join(args.load_dir, args.env_name + '{}_agent_{}_'.format(args.seed, i) + ".pt"),
                                            map_location='cpu') for i in range(2)]
     actor_critics = [a[0] for a in actor_critic_and_obs_rms]
     obs_rmss = [a[1] for a in actor_critic_and_obs_rms]

@@ -1,6 +1,7 @@
 import torch
 from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 import numpy as np
+from influence.curiosity import Cen, Dec
 
 
 def _flatten_helper(T, N, _tensor):
@@ -33,22 +34,32 @@ class RolloutStorage(object):
         self.num_steps = num_steps
         self.step = 0
 
-        self.counter = np.zeros([30, 30, 30, 30], dtype=np.int32)
-        # self.counter = np.zeros([30, 30, 4, 30, 30, 4], dtype=np.int32)
+        # self.cen = Cen([30, 30, 30, 30], [30, 30, 30, 30], [0, 1, 3, 4])
+        # self.dec = Dec(2, [30, 30], [30, 30], [0, 1])
+        self.counter = np.zeros([30, 30, 4, 30, 30, 4, 3], dtype=np.int32)
+        self.dcounter = np.zeros([30, 30, 4, 30, 30, 4], dtype=np.int32)
 
-    def _get_index(self, obs):
-        s = [o for o in obs.clone()]
-        s[0] *= 30
-        s[1] *= 30
-        s[3] *= 30
-        s[4] *= 30
-        ss = [int(s[i]) for i in [0, 1, 3, 4]]
-        return tuple(ss)
-
-    def _get_curiosity(self, obs):
-        return 1. / np.sqrt(self.counter[self._get_index(obs)] + 1)
+    def _get_index_d(self, obs):
+        index = [int(s * scale) for s, scale in zip(obs, [30, 30, 1, 30, 30, 1])]
+        return tuple(index)
 
 
+    def _get_index(self, obs, act):
+        index = [int(s * scale) for s, scale in zip(obs, [30, 30, 1, 30, 30, 1])]
+        index.append(act.item())
+        return tuple(index)
+
+    def get_curiosity_d(self, obs):
+        return 1. / np.sqrt(self.dcounter[self._get_index_d(obs)] + 1) - 0.5
+
+    def get_curiosity(self, obs, act):
+        return 1. / np.sqrt(self.counter[self._get_index(obs, act)] + 1) - 0.5
+
+    def update_d(self, obs):
+        self.dcounter[self._get_index_d(obs)] += 1
+
+    def update(self, obs, act):
+        self.counter[self._get_index(obs, act)] += 1
 
     def to(self, device):
         self.obs = self.obs.to(device)
@@ -73,9 +84,12 @@ class RolloutStorage(object):
         self.rewards[self.step].copy_(rewards)
         self.masks[self.step + 1].copy_(masks)
         self.bad_masks[self.step + 1].copy_(bad_masks)
-        for i, o in enumerate(obs):
-            self.rewards[self.step][i] += torch.tensor(self._get_curiosity(o)).to(self.device)
-            self.counter[self._get_index(o)] += 1
+        for o, a, d in zip(self.obs[self.step], actions, masks):
+            # self.rewards[self.step] += torch.tensor(self.get_curiosity(o, a)).to(self.device)
+            self.rewards[self.step] += torch.tensor(self.get_curiosity_d(o)).to(self.device)
+            self.update(o, a)
+            if not d:
+                self.update_d(o)
         self.step = (self.step + 1) % self.num_steps
 
     def after_update(self):

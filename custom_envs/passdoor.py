@@ -12,6 +12,7 @@ class PassMultiGrid(MultiGridEnv):
     def _gen_grid(self, width, height):
         self.metadata['width'] = width
         self.metadata['height'] = height
+        self.metadata['n_agent'] = len(self.agents)
         # Create an empty grid
         self.grid = MultiGrid((width, height))
 
@@ -48,7 +49,7 @@ class PassMultiGrid(MultiGridEnv):
         self.place_obj(obj=b1, top=(width // 4, height - 5), size=(1, 1))
         self.place_obj(obj=b2, top=(3 * width // 4 - 3, 5), size=(1, 1))
 
-        self.agent_spawn_kwargs = {'top': (0, 0), 'size': (width // 2, height)}
+        self.agent_spawn_kwargs = {'top': (0, 0), 'size': (width // 4, height // 4)}
 
         b1.signal.connect(d2.switch)
         b2.signal.connect(d1.switch)
@@ -66,7 +67,7 @@ class PassMultiGrid(MultiGridEnv):
             if agent.pos[0] > self.width // 2:
                 count += 1
 
-        return np.array([(count >= 2) * 1000, (count >= 2) * 1000])
+        return np.array([(count >= 2) * 1000 for _ in range(self.num_agents)])
 
     def done(self):
         count = 0
@@ -78,6 +79,7 @@ class PassMultiGrid(MultiGridEnv):
             self.reset()
             return 1
         return 0
+
 
 n_agent = 2
 register_marl_env(

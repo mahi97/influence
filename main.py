@@ -21,6 +21,7 @@ from evaluation import evaluate
 import wandb
 import matplotlib.pyplot as plt
 
+
 def main():
     args = get_args()
     wandb.init(project='influence')
@@ -153,10 +154,14 @@ def main():
                                 np.max(episode_rewards), dist_entropy, value_loss,
                                 action_loss))
                 if i == 0:
-                    plt.imshow(np.sum(rollouts.counter, axis=(2, 3)).T)
+                    # plt.imshow(np.sum(rollouts.counter, axis=(2, 3, 4, 5, 6)).T)
+                    plt.imshow(np.sum(rollouts.dcounter, axis=(2, 3, 4, 5)).T)
+                    # plt.imshow(np.sum(rollouts.counter[:, :, :, :, :, :, 2], axis=(2, 3, 4, 5)).T)
                 else:
-                    plt.imshow(np.sum(rollouts.counter, axis=(0, 1)).T)
-                
+                    # plt.imshow(np.sum(rollouts.counter, axis=(0, 1, 2, 5, 6)).T)
+                    plt.imshow(np.sum(rollouts.dcounter, axis=(0, 1, 2, 5)).T)
+                    # plt.imshow(np.sum(rollouts.counter[:, :, :, :, :, :, 2], axis=(2, 3, 4, 5)).T)
+
                 i = str(i)
                 wandb.log({
                     'FPS ' + i: int(total_num_steps / (end - start)),
@@ -170,7 +175,7 @@ def main():
                     'Action Loss ' + i: action_loss,
                     'Chart ' + i: plt
                 })
-                #plt.show()
+                # plt.show()
 
         if (args.eval_interval is not None and len(episode_rewards) > 1
                 and j % args.eval_interval == 0):
